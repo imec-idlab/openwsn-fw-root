@@ -20,6 +20,8 @@
 #include "userialbridge.h"
 #include "uexpiration.h"
 #include "uexpiration_monitor.h"
+// Whisper
+#include "whisper.h"
 
 //=========================== variables =======================================
 
@@ -47,4 +49,7 @@ void openapps_init(void) {
    //userialbridge_init();
    //uexpiration_init();
    //umonitor_init();
+
+   // Whisper
+   whisper_init();
 }

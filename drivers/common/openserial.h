@@ -56,6 +56,7 @@
 #define SERFRAME_PC2MOTE_TRIGGERSERIALECHO       ((uint8_t)'S')
 #define SERFRAME_PC2MOTE_COMMAND                 ((uint8_t)'C')
 #define SERFRAME_PC2MOTE_TRIGGERUSERIALBRIDGE    ((uint8_t)'B')
+#define SERFRAME_PC2MOTE_WHISPER                 ((uint8_t)'W')
 
 //=========================== typedef =========================================
 

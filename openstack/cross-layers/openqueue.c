@@ -335,7 +335,8 @@ OpenQueueEntry_t*  openqueue_macGetDIOPacket(){
     for (i=0;i<QUEUELENGTH;i++) {
         if (openqueue_vars.queue[i].owner==COMPONENT_SIXTOP_TO_IEEE802154E &&
             openqueue_vars.queue[i].creator==COMPONENT_ICMPv6RPL           &&
-            packetfunctions_isBroadcastMulticast(&(openqueue_vars.queue[i].l2_nextORpreviousHop))) {
+            (packetfunctions_isBroadcastMulticast(&(openqueue_vars.queue[i].l2_nextORpreviousHop)) || openqueue_vars.queue[i].isDioFake))
+        {
             ENABLE_INTERRUPTS();
             return &openqueue_vars.queue[i];
         }

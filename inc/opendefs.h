@@ -171,6 +171,7 @@ enum {
    COMPONENT_CJOIN                     = 0x27,
    COMPONENT_OPENOSCOAP                = 0x28,
    COMPONENT_CINFRARED                 = 0x29,
+   COMPONENT_WHISPER                   = 0x2a,
 };
 
 /**
@@ -364,6 +365,8 @@ typedef struct {
    bool          l1_crc;                                        // did received packet pass CRC check?
    //the packet
    uint8_t       packet[1+1+125+2+1];                           // 1B spi address, 1B length, 125B data, 2B CRC, 1B LQI
+   // Whisper
+   bool          isDioFake;
 } OpenQueueEntry_t;
 
 
