@@ -51,6 +51,8 @@ else:
             os.path.join('#','openstack','cross-layers'),
             # openapps
             os.path.join('#','openapps','userialbridge'),
+            os.path.join('#','openapps','whisper'),
+            os.path.join('#','openapps','opencoap'),
         ],
     )
     

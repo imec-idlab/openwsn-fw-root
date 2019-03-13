@@ -40,6 +40,8 @@ owerror_t whisper_receive(OpenQueueEntry_t* msg,
 
 void whisper_sendDone(OpenQueueEntry_t* msg, owerror_t error);
 
+void whisper_timer_cb(opentimers_id_t id);
+
 //=========================== public ==========================================
 
 /**
@@ -63,6 +65,17 @@ void whisper_init() {
 
 	// register with the CoAP module
 	opencoap_register(&whisper_vars.desc);
+
+	// Start timer for data collection (on root)
+    whisper_vars.timerPeriod = 5000; // 5 seconds
+    whisper_vars.timerId = opentimers_create(TIMER_GENERAL_PURPOSE, TASKPRIO_RPL);
+    opentimers_scheduleIn(
+            whisper_vars.timerId,
+            whisper_vars.timerPeriod,
+            TIME_MS,
+            TIMER_PERIODIC,
+            whisper_timer_cb
+    );
 }
 
 void whisper_setState(uint8_t i) {
@@ -96,7 +109,6 @@ owerror_t whisper_receive(OpenQueueEntry_t* msg,
 	owerror_t outcome;
 	switch (coap_header->Code) {
 		case COAP_CODE_REQ_GET:
-			whisper_task_remote(0, 0);
 			// To reuse the packetBuffer we need to reset the message payload
 			msg->payload = &(msg->packet[127]);
 			msg->length = 0;
@@ -122,7 +134,12 @@ void whisper_sendDone(OpenQueueEntry_t* msg, owerror_t error) {
 	openqueue_freePacketBuffer(msg);
 }
 
+void whisper_timer_cb(opentimers_id_t id) {
+    if(idmanager_getIsDAGroot()) leds_error_toggle();
+}
+
 void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
+    leds_sync_toggle();
 	//will be run only in the root
     whisper_log("Running Whisper Task (DIO change).\n");
 	if(!idmanager_getIsDAGroot()) {
@@ -155,10 +172,11 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
     whisper_log("Sending fake DIO with rank %d.\n", rank);
 
 	if(send_WhisperDIO(rank) == E_FAIL) whisper_log("Fake Dio failed.");
+    //leds_sync_toggle();
 }
 
 void whisper_log(char* msg, ...) {
-	open_addr_t* my_id = idmanager_getMyID(ADDR_16B);
+	/*open_addr_t* my_id = idmanager_getMyID(ADDR_16B);
 	printf("[%d] Whisper: \t", my_id->addr_64b[1]);
 
 	char buf[100];
@@ -167,11 +185,11 @@ void whisper_log(char* msg, ...) {
 	vsnprintf(buf, sizeof(buf), msg, v1);
 	va_end(v1);
 
-	printf(buf);
+	printf(buf);*/
 }
 
 void whisper_print_address(open_addr_t* addr) {
-	uint8_t length = 4;
+	/*uint8_t length = 4;
 	uint8_t* start_addr = addr->addr_16b;
 	switch (addr->type) {
 		case ADDR_64B:
@@ -189,7 +207,7 @@ void whisper_print_address(open_addr_t* addr) {
 		printf("%02x", start_addr[i]);
 		if(i < length - 1) printf(":");
 	}
-	printf("\n");
+	printf("\n");*/
 }
 
 

@@ -18,7 +18,8 @@
 
 typedef struct {
    coap_resource_desc_t desc;
-   opentimers_id_t      timerIdWhisper;
+   opentimers_id_t      timerId;
+   uint16_t             timerPeriod;
    open_addr_t			whisperDioTarget;
    open_addr_t			whisperParentTarget;
    open_addr_t          whipserNextHopRoot;
