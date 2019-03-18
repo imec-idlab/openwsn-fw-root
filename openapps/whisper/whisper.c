@@ -141,7 +141,7 @@ void whisper_timer_cb(opentimers_id_t id) {
 void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
     leds_sync_toggle();
 	//will be run only in the root
-    whisper_log("Running Whisper Task (DIO change).\n");
+    whisper_log("Recieved whisper command (serial).\n");
 	if(!idmanager_getIsDAGroot()) {
         whisper_log("Not DAG root, not running whipser task.\n");
 		return;
@@ -152,27 +152,38 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
 	memcpy(&my_addr.addr_128b, 		idmanager_getMyID(ADDR_PREFIX)->prefix, 8);
 	memcpy(&my_addr.addr_128b[8], 	idmanager_getMyID(ADDR_64B)->addr_64b, 8);
 
-	// Target
-	my_addr.addr_128b[15] = buf[1];
-	memcpy(&whisper_vars.whisperDioTarget, &my_addr, sizeof(open_addr_t));
+	switch(buf[1]) {
+	    case 0x01:
+            whisper_log("Fake dio task.\n");
+	        // Fake dio
 
-	// Parent
-	my_addr.addr_128b[15] = buf[2];
-	memcpy(&whisper_vars.whisperParentTarget, &my_addr, sizeof(open_addr_t));
+            // Target
+            my_addr.addr_128b[14] = buf[2];
+            my_addr.addr_128b[15] = buf[3];
+            memcpy(&whisper_vars.whisperDioTarget, &my_addr, sizeof(open_addr_t));
 
-	// Next Hop
-    my_addr.addr_128b[15] = buf[3];
-    memcpy(&whisper_vars.whipserNextHopRoot, &my_addr, sizeof(open_addr_t));
+            // Parent
+            my_addr.addr_128b[14] = buf[4];
+            my_addr.addr_128b[15] = buf[5];
+            memcpy(&whisper_vars.whisperParentTarget, &my_addr, sizeof(open_addr_t));
 
-	// Rank
-    dagrank_t rank = 512;
-    if(bufLen > 4) rank = (uint16_t) ((uint16_t) buf[bufLen - 1] << 8) | (uint16_t ) buf[bufLen];
-    else rank = (uint16_t) buf[bufLen];
+            // Next Hop
+            my_addr.addr_128b[14] = buf[6];
+            my_addr.addr_128b[15] = buf[7];
+            memcpy(&whisper_vars.whipserNextHopRoot, &my_addr, sizeof(open_addr_t));
 
-    whisper_log("Sending fake DIO with rank %d.\n", rank);
+            // Rank, rank always last to bytes of the buffer
+            dagrank_t rank = (uint16_t) ((uint16_t) buf[bufLen - 1] << 8) | (uint16_t ) buf[bufLen];
 
-	if(send_WhisperDIO(rank) == E_FAIL) whisper_log("Fake Dio failed.");
-    //leds_sync_toggle();
+            whisper_log("Sending fake DIO with rank %d.\n", rank);
+
+            if(send_WhisperDIO(rank) == E_FAIL) whisper_log("Fake Dio failed.");
+            //leds_sync_toggle();
+            break;
+        default:
+            whisper_log("Received wrong command\n");
+            break;
+	}
 }
 
 void whisper_log(char* msg, ...) {
