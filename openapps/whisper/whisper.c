@@ -177,8 +177,20 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
 
             whisper_log("Sending fake DIO with rank %d.\n", rank);
 
-            if(send_WhisperDIO(rank) == E_FAIL) whisper_log("Fake Dio failed.");
-            //leds_sync_toggle();
+            uint8_t result = send_WhisperDIO(rank);
+
+            uint8_t data[2];
+            data[0] = 0x01; // indicate fake dio send from root
+            data[1] = result;
+            openserial_sendWhisper(data, 2);
+
+            break;
+	    case 0x02:
+	        whisper_log("Starting progressive dio task...");
+
+	        // Toggle send dio in icmpv6rpl so no more normal dios are send.
+
+
             break;
         default:
             whisper_log("Received wrong command\n");
@@ -187,7 +199,7 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
 }
 
 void whisper_log(char* msg, ...) {
-	/*open_addr_t* my_id = idmanager_getMyID(ADDR_16B);
+	open_addr_t* my_id = idmanager_getMyID(ADDR_16B);
 	printf("[%d] Whisper: \t", my_id->addr_64b[1]);
 
 	char buf[100];
@@ -196,11 +208,11 @@ void whisper_log(char* msg, ...) {
 	vsnprintf(buf, sizeof(buf), msg, v1);
 	va_end(v1);
 
-	printf(buf);*/
+	printf(buf);
 }
 
 void whisper_print_address(open_addr_t* addr) {
-	/*uint8_t length = 4;
+	uint8_t length = 4;
 	uint8_t* start_addr = addr->addr_16b;
 	switch (addr->type) {
 		case ADDR_64B:
@@ -218,7 +230,7 @@ void whisper_print_address(open_addr_t* addr) {
 		printf("%02x", start_addr[i]);
 		if(i < length - 1) printf(":");
 	}
-	printf("\n");*/
+	printf("\n");
 }
 
 

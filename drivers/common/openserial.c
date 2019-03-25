@@ -628,6 +628,23 @@ void openserial_handleWhisper(uint8_t* buf, uint8_t bufLen) {
     whisper_task_remote(buf, bufLen);
 }
 
+owerror_t openserial_sendWhisper(uint8_t* buf, uint8_t bufLen) {
+    uint8_t i;
+
+    outputHdlcOpen();
+    outputHdlcWrite(SERFRAME_MOTE2PC_WHISPER);
+    outputHdlcWrite(0x01); // indicate the following bytes are data
+    for (i=0;i<bufLen;i++){
+        outputHdlcWrite(buf[i]);
+    }
+    outputHdlcClose();
+
+    // start TX'ing
+    openserial_flush();
+
+    return E_SUCCESS;
+}
+
 void openserial_get6pInfo(uint8_t commandId, uint8_t* code,uint8_t* cellOptions,uint8_t* numCells,cellInfo_ht* celllist_add,cellInfo_ht* celllist_delete,uint8_t* listOffset,uint8_t* maxListLen,uint8_t ptr, uint8_t commandLen){
     uint8_t i;
     uint8_t celllistLen;

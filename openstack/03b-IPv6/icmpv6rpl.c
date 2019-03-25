@@ -828,16 +828,17 @@ uint8_t send_WhisperDIO(dagrank_t target_rank) {
         icmpv6rpl_vars.busySendingDAO  = FALSE;
 
         // stop here
-        return 0;
+        return E_FAIL;
     }
 
     // do not send DIO if I have the default DAG rank
     if (icmpv6rpl_getMyDAGrank()==DEFAULTDAGRANK) {
-        return 0;
+        return E_FAIL;
     }
 
     if(icmpv6rpl_vars.busySendingDIO == TRUE) {
-        return 0;
+        whisper_log("Busy sending dio, not sending fake dio.\n");
+        return E_FAIL;
     }
 
     // if you get here, all good to send a DIO
@@ -871,7 +872,7 @@ uint8_t send_WhisperDIO(dagrank_t target_rank) {
     //===== Configuration option
     packetfunctions_reserveHeaderSize(msg,sizeof(icmpv6rpl_config_ht));
 
-    //copy the PIO in the packet
+    /*//copy the PIO in the packet
     memcpy(
             ((icmpv6rpl_config_ht*)(msg->payload)),
             &(icmpv6rpl_vars.conf),
@@ -881,7 +882,7 @@ uint8_t send_WhisperDIO(dagrank_t target_rank) {
     ((icmpv6rpl_config_ht*)(msg->payload))->maxRankIncrease    = (icmpv6rpl_vars.conf.maxRankIncrease << 8)     | (icmpv6rpl_vars.conf.maxRankIncrease >>8); //  2048
     ((icmpv6rpl_config_ht*)(msg->payload))->minHopRankIncrease = (icmpv6rpl_vars.conf.minHopRankIncrease << 8)  | (icmpv6rpl_vars.conf.minHopRankIncrease >>8); //256
     ((icmpv6rpl_config_ht*)(msg->payload))->OCP                = (icmpv6rpl_vars.conf.OCP << 8)                 | (icmpv6rpl_vars.conf.OCP >>8); // 0 OF0
-    ((icmpv6rpl_config_ht*)(msg->payload))->lifetimeUnit       = (icmpv6rpl_vars.conf.lifetimeUnit << 8)        | (icmpv6rpl_vars.conf.lifetimeUnit >>8); // 0xffff
+    ((icmpv6rpl_config_ht*)(msg->payload))->lifetimeUnit       = (icmpv6rpl_vars.conf.lifetimeUnit << 8)        | (icmpv6rpl_vars.conf.lifetimeUnit >>8); // 0xffff*/
 
     //===== DIO payload
     // note: DIO is already mostly populated
