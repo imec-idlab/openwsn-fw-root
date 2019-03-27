@@ -138,15 +138,18 @@ owerror_t openqueue_freePacketBuffer(OpenQueueEntry_t* pkt) {
 \param creator The identifier of the component, taken in COMPONENT_*.
 */
 void openqueue_removeAllCreatedBy(uint8_t creator) {
-   uint8_t i;
-   INTERRUPT_DECLARATION();
-   DISABLE_INTERRUPTS();
-   for (i=0;i<QUEUELENGTH;i++){
-      if (openqueue_vars.queue[i].creator==creator) {
-         openqueue_reset_entry(&(openqueue_vars.queue[i]));
-      }
-   }
-   ENABLE_INTERRUPTS();
+    uint8_t i;
+    INTERRUPT_DECLARATION();
+    DISABLE_INTERRUPTS();
+    for (i=0;i<QUEUELENGTH;i++){
+        if (
+            openqueue_vars.queue[i].creator == creator &&
+            openqueue_vars.queue[i].owner   != COMPONENT_IEEE802154E
+        ) {
+            openqueue_reset_entry(&(openqueue_vars.queue[i]));
+        }
+    }
+    ENABLE_INTERRUPTS();
 }
 
 //======= called by RES
@@ -181,6 +184,29 @@ OpenQueueEntry_t* openqueue_sixtopGetReceivedPacket(void) {
    return NULL;
 }
 
+uint8_t openqueue_getNum6PReq(open_addr_t* neighbor){
+
+    uint8_t i;
+    uint8_t num6Prequest;
+
+    INTERRUPT_DECLARATION();
+    DISABLE_INTERRUPTS();
+
+    num6Prequest = 0;
+    for (i=0;i<QUEUELENGTH;i++) {
+        if (
+            openqueue_vars.queue[i].owner   == COMPONENT_IEEE802154E_TO_SIXTOP  &&
+            openqueue_vars.queue[i].creator == COMPONENT_SIXTOP_RES             &&
+            openqueue_vars.queue[i].l2_sixtop_messageType == SIXTOP_CELL_REQUEST&&
+            packetfunctions_sameAddress(neighbor,&openqueue_vars.queue[i].l2_nextORpreviousHop)
+        ) {
+            num6Prequest += 1;
+        }
+    }
+    ENABLE_INTERRUPTS();
+    return num6Prequest;
+}
+
 uint8_t openqueue_getNum6PResp(void){
 
     uint8_t i;
@@ -192,8 +218,8 @@ uint8_t openqueue_getNum6PResp(void){
     num6Presponse = 0;
     for (i=0;i<QUEUELENGTH;i++) {
         if (
-            openqueue_vars.queue[i].owner == COMPONENT_IEEE802154E_TO_SIXTOP  &&
-            openqueue_vars.queue[i].creator == COMPONENT_SIXTOP_RES           &&
+            openqueue_vars.queue[i].owner   == COMPONENT_IEEE802154E_TO_SIXTOP  &&
+            openqueue_vars.queue[i].creator == COMPONENT_SIXTOP_RES             &&
             openqueue_vars.queue[i].l2_sixtop_messageType == SIXTOP_CELL_RESPONSE
         ) {
             num6Presponse += 1;
@@ -201,6 +227,26 @@ uint8_t openqueue_getNum6PResp(void){
     }
     ENABLE_INTERRUPTS();
     return num6Presponse;
+}
+
+void openqueue_remove6PrequestToNeighbor(open_addr_t* neighbor){
+
+    uint8_t i;
+
+    INTERRUPT_DECLARATION();
+    DISABLE_INTERRUPTS();
+
+    for (i=0;i<QUEUELENGTH;i++) {
+        if (
+            openqueue_vars.queue[i].owner   == COMPONENT_IEEE802154E_TO_SIXTOP   &&
+            openqueue_vars.queue[i].creator == COMPONENT_SIXTOP_RES              &&
+            openqueue_vars.queue[i].l2_sixtop_messageType == SIXTOP_CELL_REQUEST &&
+            packetfunctions_sameAddress(neighbor,&openqueue_vars.queue[i].l2_nextORpreviousHop)
+        ) {
+            openqueue_reset_entry(&(openqueue_vars.queue[i]));
+        }
+    }
+    ENABLE_INTERRUPTS();
 }
 
 //======= called by IEEE80215E
@@ -257,9 +303,12 @@ OpenQueueEntry_t* openqueue_macGet6PRequestOnAnycast(open_addr_t* autonomousUnic
            openqueue_vars.queue[i].creator==COMPONENT_SIXTOP_RES &&
            (
                (
-                   autonomousUnicastNeighbor->type==ADDR_64B &&
-                   packetfunctions_sameAddress(autonomousUnicastNeighbor,&openqueue_vars.queue[i].l2_nextORpreviousHop) == FALSE
-               )
+                    autonomousUnicastNeighbor->type==ADDR_NONE ||
+                    (
+                        autonomousUnicastNeighbor->type==ADDR_64B &&
+                        packetfunctions_sameAddress(autonomousUnicastNeighbor,&openqueue_vars.queue[i].l2_nextORpreviousHop) == FALSE
+                    )
+                )
            ) &&
            openqueue_vars.queue[i].l2_sixtop_messageType == SIXTOP_CELL_REQUEST
        ){

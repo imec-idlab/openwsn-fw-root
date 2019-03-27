@@ -57,9 +57,11 @@ void icmpv6rpl_init(void) {
     icmpv6rpl_vars.haveParent=FALSE;
     icmpv6rpl_vars.daoSent=FALSE;
     if (idmanager_getIsDAGroot()==TRUE) {
-        icmpv6rpl_vars.myDAGrank=MINHOPRANKINCREASE;
+        icmpv6rpl_vars.myDAGrank           = MINHOPRANKINCREASE;
+        icmpv6rpl_vars.lowestRankInHistory = MINHOPRANKINCREASE;
     } else {
-        icmpv6rpl_vars.myDAGrank=DEFAULTDAGRANK;
+        icmpv6rpl_vars.myDAGrank           = DEFAULTDAGRANK;
+        icmpv6rpl_vars.lowestRankInHistory = MAXDAGRANK;
     }
 
     //=== admin
@@ -320,8 +322,7 @@ bool icmpv6rpl_getPreferredParentIndex(uint8_t* indexptr) {
 bool icmpv6rpl_getPreferredParentEui64(open_addr_t* addressToWrite) {
     if (
         icmpv6rpl_vars.haveParent &&
-        neighbors_getNeighborNoResource(icmpv6rpl_vars.ParentIndex)    == FALSE &&
-        neighbors_getNeighborIsInBlacklist(icmpv6rpl_vars.ParentIndex) == FALSE
+        neighbors_getNeighborNoResource(icmpv6rpl_vars.ParentIndex)    == FALSE
     ){
         return neighbors_getNeighborEui64(addressToWrite,ADDR_64B,icmpv6rpl_vars.ParentIndex);
     } else {
@@ -408,8 +409,7 @@ void icmpv6rpl_updateMyDAGrankAndParentSelection(void) {
     if (icmpv6rpl_vars.haveParent==TRUE){
 
         if (
-            neighbors_getNeighborNoResource(icmpv6rpl_vars.ParentIndex)    == TRUE ||
-            neighbors_getNeighborIsInBlacklist(icmpv6rpl_vars.ParentIndex) == TRUE
+            neighbors_getNeighborNoResource(icmpv6rpl_vars.ParentIndex)    == TRUE
         ){
             icmpv6rpl_vars.myDAGrank = 65535;
         } else {
@@ -436,8 +436,7 @@ void icmpv6rpl_updateMyDAGrankAndParentSelection(void) {
         if (neighbors_isStableNeighborByIndex(i)) { // in use and link is stable
             // neighbor marked as NORES can't be parent
             if (
-                neighbors_getNeighborNoResource(i)   == TRUE ||
-                neighbors_getNeighborIsInBlacklist(i)== TRUE
+                neighbors_getNeighborNoResource(i)   == TRUE
             ) {
                 continue;
             }
@@ -449,7 +448,16 @@ void icmpv6rpl_updateMyDAGrankAndParentSelection(void) {
             if (neighborRank==DEFAULTDAGRANK) continue;
             // compute tentative cost of full path to root through this neighbor
             tentativeDAGrank = (uint32_t)neighborRank+rankIncrease;
-            if (tentativeDAGrank > 65535) {tentativeDAGrank = 65535;}
+            if (tentativeDAGrank > 65535) {
+                tentativeDAGrank = 65535;
+            }
+            // if larger than lowestRank+maxRankIncrease, pass (per rfc6550#section-8.2.2.4)
+            if (
+                icmpv6rpl_vars.lowestRankInHistory<(MAXDAGRANK-DAGMAXRANKINCREASE)   &&
+                tentativeDAGrank>(icmpv6rpl_vars.lowestRankInHistory+DAGMAXRANKINCREASE)
+            ) {
+                  continue;
+            }
             // if not low enough to justify switch, pass (i.e. hysterisis)
             if (
                 (previousDAGrank<tentativeDAGrank) ||
@@ -461,6 +469,9 @@ void icmpv6rpl_updateMyDAGrankAndParentSelection(void) {
             foundBetterParent=TRUE;
             // select best candidate so far
             if (icmpv6rpl_vars.myDAGrank>tentativeDAGrank) {
+                if (tentativeDAGrank<icmpv6rpl_vars.lowestRankInHistory){
+                    icmpv6rpl_vars.lowestRankInHistory = (uint16_t)tentativeDAGrank;
+                }
                 icmpv6rpl_vars.myDAGrank    = (uint16_t)tentativeDAGrank;
                 icmpv6rpl_vars.ParentIndex  = i;
                 icmpv6rpl_vars.rankIncrease = rankIncrease;
