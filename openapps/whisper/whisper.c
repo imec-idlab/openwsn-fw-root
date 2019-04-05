@@ -50,6 +50,7 @@ void whisper_timer_cb(opentimers_id_t id);
 void whisper_init() {
 	//this will be run in the root
 	//if(!idmanager_getIsDAGroot()) return;
+	whisper_log("Initializing whisper root node.\n");
 
 	// prepare the resource descriptor for the /w path
 	whisper_vars.desc.path0len             = sizeof(whisper_path0)-1;
@@ -66,7 +67,7 @@ void whisper_init() {
 	// register with the CoAP module
 	opencoap_register(&whisper_vars.desc);
 
-	// Start timer for data collection (on root)
+	// Start timer for connecting to
     whisper_vars.timerPeriod = 5000; // 5 seconds
     whisper_vars.timerId = opentimers_create(TIMER_GENERAL_PURPOSE, TASKPRIO_RPL);
     opentimers_scheduleIn(
@@ -122,6 +123,9 @@ owerror_t whisper_receive(OpenQueueEntry_t* msg,
 			coap_header->Code = COAP_CODE_RESP_CONTENT;
 			outcome = E_SUCCESS;
 			break;
+	    case COAP_CODE_REQ_POST:
+	        outcome = E_SUCCESS;
+            break;
 		default:
 			outcome = E_FAIL;
 			break;
@@ -172,6 +176,58 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
             my_addr.addr_128b[15] = buf[7];
             memcpy(&whisper_vars.whipserNextHopRoot, &my_addr, sizeof(open_addr_t));
 
+            if(!neighbors_isStableNeighbor(&whisper_vars.whipserNextHopRoot)) {
+            	whisper_log("Forwarding message to whisper node.");
+
+				// create a CoAP RD packet
+				OpenQueueEntry_t* pkt = openqueue_getFreePacketBuffer(COMPONENT_WHISPER);
+
+				if (pkt == NULL) {
+					openserial_printError(
+							COMPONENT_WHISPER,
+							ERR_NO_FREE_PACKET_BUFFER,
+							(errorparameter_t)0,
+							(errorparameter_t)0
+					);
+					// FAIL
+					break;
+				}
+
+				coap_option_iht options[5];
+
+				// take ownership over that packet
+				pkt->creator                   = COMPONENT_CJOIN;
+				pkt->owner                     = COMPONENT_CJOIN;
+
+				// location-path option
+				options[1].type = COAP_OPTION_NUM_URIPATH;
+				options[1].length = sizeof(whisper_path0)-1;
+				options[1].pValue = (uint8_t *)whisper_path0;
+
+				// content-type option
+				uint8_t medType = COAP_MEDTYPE_APPOCTETSTREAM;
+				options[1].type = COAP_OPTION_NUM_CONTENTFORMAT;
+				options[1].length = 1;
+				options[1].pValue = &medType;
+
+				// metadata
+				pkt->l4_destination_port       = WKP_UDP_COAP;
+				pkt->l3_destinationAdd.type    = ADDR_128B;
+				memcpy(&pkt->l3_destinationAdd.addr_128b[0],&whisper_vars.whipserNextHopRoot,16);
+
+				// send
+				opencoap_send(
+						pkt,
+						COAP_TYPE_NON,
+						COAP_CODE_REQ_GET,
+						1, // token len
+						options,
+						2, // options len
+						&whisper_vars.desc
+				);
+                break;
+			}
+
             // Rank, rank always last to bytes of the buffer
             dagrank_t rank = (uint16_t) ((uint16_t) buf[bufLen - 1] << 8) | (uint16_t ) buf[bufLen];
 
@@ -187,11 +243,14 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
             break;
 	    case 0x02:
 	        whisper_log("Starting progressive dio task...");
-
 	        // Toggle send dio in icmpv6rpl so no more normal dios are send.
-
-
             break;
+	    case 0x03:
+	        whisper_log("Sending fake DIS message.");
+
+	        // Create and send COAP PUT packet to whisper node
+
+
         default:
             whisper_log("Received wrong command\n");
             break;
