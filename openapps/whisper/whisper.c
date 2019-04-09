@@ -158,8 +158,7 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
 
 	switch(buf[1]) {
 	    case 0x01:
-            whisper_log("Fake dio task.\n");
-	        // Fake dio
+            whisper_log("Whisper fake dio command (root)\n");
 
             // Target
             my_addr.addr_128b[14] = buf[2];
@@ -176,58 +175,6 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
             my_addr.addr_128b[15] = buf[7];
             memcpy(&whisper_vars.whipserNextHopRoot, &my_addr, sizeof(open_addr_t));
 
-            if(!neighbors_isStableNeighbor(&whisper_vars.whipserNextHopRoot)) {
-            	whisper_log("Forwarding message to whisper node.");
-
-				// create a CoAP RD packet
-				OpenQueueEntry_t* pkt = openqueue_getFreePacketBuffer(COMPONENT_WHISPER);
-
-				if (pkt == NULL) {
-					openserial_printError(
-							COMPONENT_WHISPER,
-							ERR_NO_FREE_PACKET_BUFFER,
-							(errorparameter_t)0,
-							(errorparameter_t)0
-					);
-					// FAIL
-					break;
-				}
-
-				coap_option_iht options[5];
-
-				// take ownership over that packet
-				pkt->creator                   = COMPONENT_CJOIN;
-				pkt->owner                     = COMPONENT_CJOIN;
-
-				// location-path option
-				options[1].type = COAP_OPTION_NUM_URIPATH;
-				options[1].length = sizeof(whisper_path0)-1;
-				options[1].pValue = (uint8_t *)whisper_path0;
-
-				// content-type option
-				uint8_t medType = COAP_MEDTYPE_APPOCTETSTREAM;
-				options[1].type = COAP_OPTION_NUM_CONTENTFORMAT;
-				options[1].length = 1;
-				options[1].pValue = &medType;
-
-				// metadata
-				pkt->l4_destination_port       = WKP_UDP_COAP;
-				pkt->l3_destinationAdd.type    = ADDR_128B;
-				memcpy(&pkt->l3_destinationAdd.addr_128b[0],&whisper_vars.whipserNextHopRoot,16);
-
-				// send
-				opencoap_send(
-						pkt,
-						COAP_TYPE_NON,
-						COAP_CODE_REQ_GET,
-						1, // token len
-						options,
-						2, // options len
-						&whisper_vars.desc
-				);
-                break;
-			}
-
             // Rank, rank always last to bytes of the buffer
             dagrank_t rank = (uint16_t) ((uint16_t) buf[bufLen - 1] << 8) | (uint16_t ) buf[bufLen];
 
@@ -242,15 +189,8 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
 
             break;
 	    case 0x02:
-	        whisper_log("Starting progressive dio task...");
-	        // Toggle send dio in icmpv6rpl so no more normal dios are send.
-            break;
-	    case 0x03:
 	        whisper_log("Sending fake DIS message.");
-
 	        // Create and send COAP PUT packet to whisper node
-
-
         default:
             whisper_log("Received wrong command\n");
             break;
