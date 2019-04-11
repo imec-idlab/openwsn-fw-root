@@ -66,17 +66,6 @@ void whisper_init() {
 
 	// register with the CoAP module
 	opencoap_register(&whisper_vars.desc);
-
-	// Start timer for connecting to
-    whisper_vars.timerPeriod = 5000; // 5 seconds
-    whisper_vars.timerId = opentimers_create(TIMER_GENERAL_PURPOSE, TASKPRIO_RPL);
-    opentimers_scheduleIn(
-            whisper_vars.timerId,
-            whisper_vars.timerPeriod,
-            TIME_MS,
-            TIMER_PERIODIC,
-            whisper_timer_cb
-    );
 }
 
 void whisper_setState(uint8_t i) {
@@ -136,10 +125,6 @@ owerror_t whisper_receive(OpenQueueEntry_t* msg,
 
 void whisper_sendDone(OpenQueueEntry_t* msg, owerror_t error) {
 	openqueue_freePacketBuffer(msg);
-}
-
-void whisper_timer_cb(opentimers_id_t id) {
-    if(idmanager_getIsDAGroot()) leds_error_toggle();
 }
 
 void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
