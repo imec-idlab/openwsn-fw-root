@@ -29,4 +29,3 @@ Documentation
 
 - overview: https://openwsn.atlassian.net/wiki/
 - source code: http://openwsn-berkeley.github.io/firmware/
-

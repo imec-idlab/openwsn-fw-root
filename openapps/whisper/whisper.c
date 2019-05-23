@@ -49,7 +49,7 @@ void whisper_timer_cb(opentimers_id_t id);
 */
 void whisper_init() {
 	//this will be run in the root
-	//if(!idmanager_getIsDAGroot()) return;
+	if(!idmanager_getIsDAGroot()) return;
 	whisper_log("Initializing whisper root node.\n");
 
 	// prepare the resource descriptor for the /w path
@@ -62,7 +62,7 @@ void whisper_init() {
 	whisper_vars.desc.callbackRx           = &whisper_receive;
 	whisper_vars.desc.callbackSendDone     = &whisper_sendDone;
 
-    whisper_setState(0);
+        whisper_setState(0);
 
 	// register with the CoAP module
 	opencoap_register(&whisper_vars.desc);
@@ -183,38 +183,38 @@ void whisper_task_remote(uint8_t* buf, uint8_t bufLen) {
 }
 
 void whisper_log(char* msg, ...) {
-	open_addr_t* my_id = idmanager_getMyID(ADDR_16B);
-	printf("[%d] Whisper: \t", my_id->addr_64b[1]);
+/*	open_addr_t* my_id = idmanager_getMyID(ADDR_16B);*/
+/*	printf("[%d] Whisper: \t", my_id->addr_64b[1]);*/
 
-	char buf[100];
-	va_list v1;
-	va_start(v1, msg);
-	vsnprintf(buf, sizeof(buf), msg, v1);
-	va_end(v1);
+/*	char buf[100];*/
+/*	va_list v1;*/
+/*	va_start(v1, msg);*/
+/*	vsnprintf(buf, sizeof(buf), msg, v1);*/
+/*	va_end(v1);*/
 
-	printf(buf);
+/*	printf(buf);*/
 }
 
 void whisper_print_address(open_addr_t* addr) {
-	uint8_t length = 4;
-	uint8_t* start_addr = addr->addr_16b;
-	switch (addr->type) {
-		case ADDR_64B:
-			length = 8;
-			start_addr = addr->addr_64b;
-			break;
-		case ADDR_128B:
-			length = 16;
-			start_addr = addr->addr_128b;
-			break;
-		default: break;
-	}
+/*	uint8_t length = 4;*/
+/*	uint8_t* start_addr = addr->addr_16b;*/
+/*	switch (addr->type) {*/
+/*		case ADDR_64B:*/
+/*			length = 8;*/
+/*			start_addr = addr->addr_64b;*/
+/*			break;*/
+/*		case ADDR_128B:*/
+/*			length = 16;*/
+/*			start_addr = addr->addr_128b;*/
+/*			break;*/
+/*		default: break;*/
+/*	}*/
 
-	for(uint8_t i = 0; i < length; i++) {
-		printf("%02x", start_addr[i]);
-		if(i < length - 1) printf(":");
-	}
-	printf("\n");
+/*	for(uint8_t i = 0; i < length; i++) {*/
+/*		printf("%02x", start_addr[i]);*/
+/*		if(i < length - 1) printf(":");*/
+/*	}*/
+/*	printf("\n");*/
 }
 
 
